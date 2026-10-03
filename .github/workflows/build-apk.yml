@@ -31,12 +31,30 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Build debug APK
-        run: gradle --no-daemon assembleDebug
+      - name: Create CI release signing key
+        env:
+          WAHEED_KEYSTORE_PASSWORD: ${{ secrets.WAHEED_KEYSTORE_PASSWORD }}
+          WAHEED_KEY_ALIAS: ${{ secrets.WAHEED_KEY_ALIAS }}
+          WAHEED_KEY_PASSWORD: ${{ secrets.WAHEED_KEY_PASSWORD }}
+        run: |
+          : "${WAHEED_KEYSTORE_PASSWORD:?Missing WAHEED_KEYSTORE_PASSWORD secret}"
+          : "${WAHEED_KEY_ALIAS:?Missing WAHEED_KEY_ALIAS secret}"
+          : "${WAHEED_KEY_PASSWORD:?Missing WAHEED_KEY_PASSWORD secret}"
+          keytool -genkeypair -v             -keystore "$HOME/waheed-agent-release.jks"             -storepass "$WAHEED_KEYSTORE_PASSWORD"             -keypass "$WAHEED_KEY_PASSWORD"             -alias "$WAHEED_KEY_ALIAS"             -keyalg RSA             -keysize 2048             -validity 10000             -dname "CN=Waheed AI Agent, OU=Mobile, O=Waheed AI Agent, L=Pakistan, ST=Punjab, C=PK"
 
-      - name: Upload APK
+      - name: Build signed release APK
+        env:
+          WAHEED_KEYSTORE_PASSWORD: ${{ secrets.WAHEED_KEYSTORE_PASSWORD }}
+          WAHEED_KEY_ALIAS: ${{ secrets.WAHEED_KEY_ALIAS }}
+          WAHEED_KEY_PASSWORD: ${{ secrets.WAHEED_KEY_PASSWORD }}
+        run: gradle --no-daemon assembleRelease
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/Waheed-AI-Agent-v4.1.apk
+
+      - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
-          name: Waheed-AI-Agent-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: Waheed-AI-Agent-v4.1-release
+          path: app/build/outputs/apk/release/Waheed-AI-Agent-v4.1.apk
           if-no-files-found: error

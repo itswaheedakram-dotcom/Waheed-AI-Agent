@@ -31,10 +31,17 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:gravity="center"
-        android:text="Tap the microphone and speak"
+        android:text="Tap SPEAK and talk to your AI agent"
         android:textSize="20sp"
         android:textColor="#222222"
         android:padding="20dp"/>
+
+    <Button
+        android:id="@+id/settingsButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="⚙ AI SETTINGS"
+        android:layout_marginBottom="10dp"/>
 
     <Button
         android:id="@+id/micButton"

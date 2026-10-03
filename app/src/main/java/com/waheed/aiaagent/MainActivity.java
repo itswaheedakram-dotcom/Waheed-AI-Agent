@@ -42,19 +42,22 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final ArrayList<String> conversation = new ArrayList<>();
-    private AgentCore agentCore;\n    private LocalModelManager localModelManager;
+    private AgentCore agentCore;
+    private LocalModelManager localModelManager;
     private String lastCommand = "";
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         setContentView(R.layout.activity_main);
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        agentCore = new AgentCore(this);\n        localModelManager = new LocalModelManager(this);
+        agentCore = new AgentCore(this);
+        localModelManager = new LocalModelManager(this);
         status = findViewById(R.id.status);
         transcript = findViewById(R.id.transcript);
         Button mic = findViewById(R.id.micButton);
         Button settings = findViewById(R.id.settingsButton);
-        Button info = findViewById(R.id.infoButton);\n        Button localModel = findViewById(R.id.localModelButton);
+        Button info = findViewById(R.id.infoButton);
+        Button localModel = findViewById(R.id.localModelButton);
 
         tts = new TextToSpeech(this, result -> {
             if (result == TextToSpeech.SUCCESS) tts.setLanguage(Locale.US);
@@ -62,8 +65,9 @@ public class MainActivity extends Activity {
 
         mic.setOnClickListener(v -> startListening());
         settings.setOnClickListener(v -> showSettings());
-        info.setOnClickListener(v -> showCapabilities());\n        localModel.setOnClickListener(v -> showLocalModel());
-        status.setText(hasKey() ? "AI ready • Internet mode" : "Offline agent ready • Tap Speak");
+        info.setOnClickListener(v -> showCapabilities());
+        localModel.setOnClickListener(v -> showLocalModel());
+        status.setText(localModelManager.isModelSelected() ? "Local AI ready • Offline mode" : (hasKey() ? "AI ready • Internet mode" : "Offline agent ready • Tap Speak"));
         transcript.setText("Agent Core V5.2 ready.\n\nLocal AI model: " + (localModelManager.isModelSelected() ? "selected" : "not selected"));
     }
 
@@ -102,7 +106,17 @@ public class MainActivity extends Activity {
             }).show();
     }
 
-    private void showLocalModel() {\n        String statusText = localModelManager.status();\n        new android.app.AlertDialog.Builder(this)\n            .setTitle("Local AI Brain • V5.1")\n            .setMessage(statusText + "\\n\\nSelect a GGUF model stored on your phone. The model stays inside the app and is not uploaded to a cloud service.\\n\\nNote: V5.2 adds native llama.cpp inference. A compatible GGUF model can now run directly on the phone without an API key or cloud upload.")\n            .setNegativeButton("Close", null)\n            .setPositiveButton("Select GGUF", (d, w) -> localModelManager.chooseModel())\n            .show();\n    }\n\n    private void showCapabilities() {
+    private void showLocalModel() {
+        String statusText = localModelManager.status();
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Local AI Brain • V5.2")
+            .setMessage(statusText + "\\n\\nSelect a GGUF model stored on your phone. The model stays inside the app and is not uploaded to a cloud service.\\n\\nNote: V5.2 adds native llama.cpp inference. A compatible GGUF model can now run directly on the phone without an API key or cloud upload.")
+            .setNegativeButton("Close", null)
+            .setPositiveButton("Select GGUF", (d, w) -> localModelManager.chooseModel())
+            .show();
+    }
+
+    private void showCapabilities() {
         String message =
             "WHAT I CAN DO NOW\\n\\n" +
             "🎙 Voice\\n" +
@@ -135,7 +149,8 @@ public class MainActivity extends Activity {
             "• Successful-command learning hints\\n" +
             "• OpenAI Responses API support\\n" +
             "• Conversation context\\n" +
-            "• Internet mode\\n" +\n            "• Native local GGUF inference (V5.2)\\n\\n" +
+            "• Internet mode\\n" +
+            "• Native local GGUF inference (V5.2)\\n\\n" +
             "🔒 Safety\\n" +
             "• Uses normal Android APIs and user-triggered actions\\n" +
             "• No AccessibilityService / hidden phone control\\n\\n" +
@@ -163,7 +178,19 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 71) {\n            boolean ok = localModelManager.handleResult(requestCode, resultCode, data);\n            if (ok) {\n                status.setText("Local GGUF model selected");\n                transcript.setText("Local AI model selected.\n\n" + localModelManager.status() + "\n\nNative local inference engine will use this model in the next engine step.");\n                speak("Local AI model selected.");\n            } else if (resultCode == RESULT_OK) {\n                Toast.makeText(this, "Could not import the model.", Toast.LENGTH_LONG).show();\n            }\n            return;\n        }\n        if (requestCode != REQ_SPEECH) return;
+        if (requestCode == 71) {
+            boolean ok = localModelManager.handleResult(requestCode, resultCode, data);
+            if (ok) {
+                status.setText("Local GGUF model selected");
+                transcript.setText("Local AI model selected.\n\n" + localModelManager.status() + "\n\nLoading native local AI engine...");
+                loadLocalModelAsync();
+                speak("Local AI model selected.");
+            } else if (resultCode == RESULT_OK) {
+                Toast.makeText(this, "Could not import the model.", Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
+        if (requestCode != REQ_SPEECH) return;
         if (resultCode == RESULT_OK && data != null) {
             ArrayList<String> r = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             if (r != null && !r.isEmpty()) askAI(r.get(0));
@@ -250,6 +277,10 @@ public class MainActivity extends Activity {
             runLocalModel(heard);
             return;
         }
+        if (localModelManager.isModelSelected()) {
+            runLocalModel(heard);
+            return;
+        }
         if (!hasKey()) {
             String memory = agentCore.memorySummary();
             String reply = "I can hear you. My offline Agent Core is active. " + memory + " Add an AI model later for natural-language reasoning.";
@@ -272,6 +303,50 @@ public class MainActivity extends Activity {
                     status.setText("AI error");
                     speak("I could not reach the AI service. Please check your internet and API settings.");
                     Toast.makeText(this, "AI error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private void loadLocalModelAsync() {
+        final String path = localModelManager.getModelFile().getAbsolutePath();
+        status.setText("Loading local AI model...");
+        executor.execute(() -> {
+            try {
+                String result = LocalLlmEngine.nativeLoad(path);
+                runOnUiThread(() -> {
+                    status.setText("Local AI ready • Offline mode");
+                    transcript.setText("Local AI engine: " + result);
+                    speak("Local AI is ready offline.");
+                });
+            } catch (Throwable e) {
+                runOnUiThread(() -> {
+                    status.setText("Local AI load error");
+                    transcript.setText("Local AI could not load the GGUF model.\n\n" + e.getMessage());
+                    Toast.makeText(this, "Local AI load error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private void runLocalModel(String userText) {
+        status.setText("Thinking • Local AI...");
+        executor.execute(() -> {
+            try {
+                String reply = LocalLlmEngine.nativeGenerate(LocalLlmEngine.buildPrompt(userText), 256);
+                if (reply == null || reply.trim().isEmpty()) reply = "I could not generate a local response.";
+                final String finalReply = reply.trim();
+                runOnUiThread(() -> {
+                    transcript.setText("You: " + userText + "\n\nAgent: " + finalReply);
+                    status.setText("Local AI ready • Offline mode");
+                    agentCore.record(userText, finalReply, true);
+                    speak(finalReply);
+                });
+            } catch (Throwable e) {
+                runOnUiThread(() -> {
+                    status.setText("Local AI error");
+                    speak("The local AI model could not generate a response.");
+                    Toast.makeText(this, "Local AI error: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
         });

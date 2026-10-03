@@ -32,15 +32,10 @@ jobs:
           gradle-version: "8.9"
 
       - name: Create CI release signing key
-        env:
         run: |
-          keytool -genkeypair -v             -keystore "$HOME/waheed-agent-release.jks"             -storepass "$WAHEED_KEYSTORE_PASSWORD"             -keypass "$WAHEED_KEY_PASSWORD"             -alias "$WAHEED_KEY_ALIAS"             -keyalg RSA             -keysize 2048             -validity 10000             -dname "CN=Waheed AI Agent, OU=Mobile, O=Waheed AI Agent, L=Pakistan, ST=Punjab, C=PK"
+          keytool -genkeypair -v             -keystore "$HOME/waheed-agent-release.jks"             -storepass "changeit"             -keypass "changeit"             -alias "waheed"             -keyalg RSA             -keysize 2048             -validity 10000             -dname "CN=Waheed AI Agent, OU=Mobile, O=Waheed AI Agent, L=Pakistan, ST=Punjab, C=PK"
 
       - name: Build signed release APK
-        env:
-          WAHEED_KEYSTORE_PASSWORD: ${{ secrets.WAHEED_KEYSTORE_PASSWORD }}
-          WAHEED_KEY_ALIAS: ${{ secrets.WAHEED_KEY_ALIAS }}
-          WAHEED_KEY_PASSWORD: ${{ secrets.WAHEED_KEY_PASSWORD }}
         run: gradle --no-daemon assembleRelease
 
       - name: Rename APK

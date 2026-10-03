@@ -42,19 +42,19 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final ArrayList<String> conversation = new ArrayList<>();
-    private AgentCore agentCore;
+    private AgentCore agentCore;\n    private LocalModelManager localModelManager;
     private String lastCommand = "";
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         setContentView(R.layout.activity_main);
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        agentCore = new AgentCore(this);
+        agentCore = new AgentCore(this);\n        localModelManager = new LocalModelManager(this);
         status = findViewById(R.id.status);
         transcript = findViewById(R.id.transcript);
         Button mic = findViewById(R.id.micButton);
         Button settings = findViewById(R.id.settingsButton);
-        Button info = findViewById(R.id.infoButton);
+        Button info = findViewById(R.id.infoButton);\n        Button localModel = findViewById(R.id.localModelButton);
 
         tts = new TextToSpeech(this, result -> {
             if (result == TextToSpeech.SUCCESS) tts.setLanguage(Locale.US);
@@ -62,9 +62,9 @@ public class MainActivity extends Activity {
 
         mic.setOnClickListener(v -> startListening());
         settings.setOnClickListener(v -> showSettings());
-        info.setOnClickListener(v -> showCapabilities());
+        info.setOnClickListener(v -> showCapabilities());\n        localModel.setOnClickListener(v -> showLocalModel());
         status.setText(hasKey() ? "AI ready • Internet mode" : "Offline agent ready • Tap Speak");
-        transcript.setText("Agent Core V5.0 ready.");
+        transcript.setText("Agent Core V5.1 ready.\n\nLocal AI model: " + (localModelManager.isModelSelected() ? "selected" : "not selected"));
     }
 
     private boolean hasKey() {
@@ -102,7 +102,7 @@ public class MainActivity extends Activity {
             }).show();
     }
 
-    private void showCapabilities() {
+    private void showLocalModel() {\n        String statusText = localModelManager.status();\n        new android.app.AlertDialog.Builder(this)\n            .setTitle("Local AI Brain • V5.1")\n            .setMessage(statusText + "\\n\\nSelect a GGUF model stored on your phone. The model stays inside the app and is not uploaded to a cloud service.\\n\\nNote: V5.1 adds the local model manager and storage foundation. Native llama.cpp inference is the next engine step; the current Agent Core remains fully usable without it.")\n            .setNegativeButton("Close", null)\n            .setPositiveButton("Select GGUF", (d, w) -> localModelManager.chooseModel())\n            .show();\n    }\n\n    private void showCapabilities() {
         String message =
             "WHAT I CAN DO NOW\\n\\n" +
             "🎙 Voice\\n" +
@@ -135,13 +135,13 @@ public class MainActivity extends Activity {
             "• Successful-command learning hints\\n" +
             "• OpenAI Responses API support\\n" +
             "• Conversation context\\n" +
-            "• Internet mode\\n\\n" +
+            "• Internet mode\\n" +\n            "• Local GGUF model manager (V5.1)\\n\\n" +
             "🔒 Safety\\n" +
             "• Uses normal Android APIs and user-triggered actions\\n" +
             "• No AccessibilityService / hidden phone control\\n\\n" +
             "More features will be added in future versions.";
         new android.app.AlertDialog.Builder(this)
-            .setTitle("Waheed AI Agent • V5.0")
+            .setTitle("Waheed AI Agent • V5.1")
             .setMessage(message)
             .setPositiveButton("OK", null)
             .show();
@@ -163,7 +163,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != REQ_SPEECH) return;
+        if (requestCode == 71) {\n            boolean ok = localModelManager.handleResult(requestCode, resultCode, data);\n            if (ok) {\n                status.setText("Local GGUF model selected");\n                transcript.setText("Local AI model selected.\n\n" + localModelManager.status() + "\n\nNative local inference engine will use this model in the next engine step.");\n                speak("Local AI model selected.");\n            } else if (resultCode == RESULT_OK) {\n                Toast.makeText(this, "Could not import the model.", Toast.LENGTH_LONG).show();\n            }\n            return;\n        }\n        if (requestCode != REQ_SPEECH) return;
         if (resultCode == RESULT_OK && data != null) {
             ArrayList<String> r = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             if (r != null && !r.isEmpty()) askAI(r.get(0));

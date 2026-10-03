@@ -89,7 +89,6 @@ public class MainActivity extends Activity {
             .setMessage("V2 uses the OpenAI Responses API. For security, do not publish your key or commit it to GitHub.")
             .setView(box)
             .setNegativeButton("Cancel", null)
-            .setNeutralButton("Accessibility", (d, w) -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)))
             .setPositiveButton("Save", (d, w) -> {
                 prefs.edit().putString("api_key", key.getText().toString().trim())
                     .putString("model", model.getText().toString().trim()).apply();

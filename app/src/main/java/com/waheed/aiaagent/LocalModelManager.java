@@ -1,30 +1,20 @@
 package com.waheed.aiaagent;
 
 import android.app.Activity;
-import android.content.Intent;
-import android.net.Uri;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 
 public class LocalModelManager {
     private final Activity activity;
-    private static final int REQ_MODEL = 71;
+    private static final String ASSET_MODEL = "Qwen3-0.6B-Q4_K_M.gguf";
 
     public LocalModelManager(Activity activity) {
         this.activity = activity;
     }
 
-    public void chooseModel() {
-        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        i.setType("application/octet-stream");
-        i.addCategory(Intent.CATEGORY_OPENABLE);
-        activity.startActivityForResult(i, REQ_MODEL);
-    }
-
     public boolean isModelSelected() {
-        return getModelFile().exists();
+        return getModelFile().exists() && getModelFile().length() > 100000000L;
     }
 
     public File getModelFile() {
@@ -33,27 +23,33 @@ public class LocalModelManager {
 
     public String status() {
         File f = getModelFile();
-        if (!f.exists()) return "No local GGUF model selected.";
+        if (!f.exists()) return "Bundled local AI model is preparing...";
         long mb = f.length() / (1024L * 1024L);
-        return "Local GGUF model ready • " + mb + " MB";
+        return "Bundled Qwen3 local AI ready • " + mb + " MB";
     }
 
-    public boolean handleResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode != REQ_MODEL || resultCode != Activity.RESULT_OK || data == null || data.getData() == null) {
-            return false;
-        }
-        Uri uri = data.getData();
-        File dir = new File(activity.getFilesDir(), "models");
-        if (!dir.exists()) dir.mkdirs();
+    public boolean prepareBundledModel() {
         File target = getModelFile();
-        try (InputStream in = activity.getContentResolver().openInputStream(uri);
-             FileOutputStream out = new FileOutputStream(target)) {
-            if (in == null) return false;
+        if (isModelSelected()) return true;
+        File dir = target.getParentFile();
+        if (!dir.exists() && !dir.mkdirs()) return false;
+        File temp = new File(dir, "local-model.gguf.tmp");
+        try (InputStream in = activity.getAssets().open(ASSET_MODEL);
+             FileOutputStream out = new FileOutputStream(temp)) {
             byte[] buffer = new byte[1024 * 1024];
             int n;
             while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
-            return true;
+            out.flush();
+            if (!temp.renameTo(target)) {
+                try (InputStream tin = new java.io.FileInputStream(temp);
+                     FileOutputStream tout = new FileOutputStream(target)) {
+                    while ((n = tin.read(buffer)) != -1) tout.write(buffer, 0, n);
+                }
+                temp.delete();
+            }
+            return isModelSelected();
         } catch (Exception e) {
+            temp.delete();
             return false;
         }
     }

@@ -3,34 +3,92 @@ package com.waheed.aiaagent;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
+import android.text.InputType;
+import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private static final int REQ_AUDIO = 10;
     private static final int REQ_SPEECH = 11;
+    private static final String PREFS = "agent_settings";
     private TextView status, transcript;
     private TextToSpeech tts;
+    private SharedPreferences prefs;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ArrayList<String> conversation = new ArrayList<>();
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         setContentView(R.layout.activity_main);
-
+        prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         status = findViewById(R.id.status);
         transcript = findViewById(R.id.transcript);
         Button mic = findViewById(R.id.micButton);
+        Button settings = findViewById(R.id.settingsButton);
 
         tts = new TextToSpeech(this, result -> {
             if (result == TextToSpeech.SUCCESS) tts.setLanguage(Locale.US);
         });
 
         mic.setOnClickListener(v -> startListening());
+        settings.setOnClickListener(v -> showSettings());
+        status.setText(hasKey() ? "AI ready • Internet mode" : "AI key needed • Tap Settings");
+    }
+
+    private boolean hasKey() {
+        return !prefs.getString("api_key", "").trim().isEmpty();
+    }
+
+    private void showSettings() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int pad = (int)(20 * getResources().getDisplayMetrics().density);
+        box.setPadding(pad, 0, pad, 0);
+
+        EditText key = new EditText(this);
+        key.setHint("API key");
+        key.setSingleLine(true);
+        key.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        key.setText(prefs.getString("api_key", ""));
+        box.addView(key);
+
+        EditText model = new EditText(this);
+        model.setHint("Model");
+        model.setSingleLine(true);
+        model.setText(prefs.getString("model", "gpt-6-luna"));
+        box.addView(model);
+
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("AI Settings")
+            .setMessage("V2 uses the OpenAI Responses API. For security, do not publish your key or commit it to GitHub.")
+            .setView(box)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Save", (d, w) -> {
+                prefs.edit().putString("api_key", key.getText().toString().trim())
+                    .putString("model", model.getText().toString().trim()).apply();
+                status.setText(hasKey() ? "AI ready • Internet mode" : "AI key needed");
+            }).show();
     }
 
     private void startListening() {
@@ -50,19 +108,111 @@ public class MainActivity extends Activity {
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != REQ_SPEECH) return;
-        status.setText("Ready");
         if (resultCode == RESULT_OK && data != null) {
             ArrayList<String> r = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-            if (r != null && !r.isEmpty()) {
-                String heard = r.get(0);
-                transcript.setText("You: " + heard);
-                String reply = "I heard: " + heard + ". AI connection will be added in the next build.";
-                tts.speak(reply, TextToSpeech.QUEUE_FLUSH, null, "agent_reply");
+            if (r != null && !r.isEmpty()) askAI(r.get(0));
+            else status.setText("Ready");
+        } else status.setText("Ready");
+    }
+
+    private void askAI(String heard) {
+        transcript.setText("You: " + heard);
+        if (!hasKey()) {
+            String reply = "I can hear you. Open Settings and add your AI API key to enable my brain.";
+            status.setText("AI key needed");
+            speak(reply);
+            return;
+        }
+        status.setText("Thinking...");
+        executor.execute(() -> {
+            try {
+                String reply = callResponsesApi(heard);
+                runOnUiThread(() -> {
+                    transcript.setText("You: " + heard + "\n\nAgent: " + reply);
+                    status.setText("AI ready • Internet mode");
+                    speak(reply);
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    status.setText("AI error");
+                    speak("I could not reach the AI service. Please check your internet and API settings.");
+                    Toast.makeText(this, "AI error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private String callResponsesApi(String userText) throws Exception {
+        String key = prefs.getString("api_key", "").trim();
+        String model = prefs.getString("model", "gpt-6-luna").trim();
+        if (model.isEmpty()) model = "gpt-6-luna";
+
+        conversation.add(userText);
+        JSONArray input = new JSONArray();
+        int start = Math.max(0, conversation.size() - 12);
+        for (int n = start; n < conversation.size(); n++) {
+            input.put(new JSONObject().put("role", "user").put("content", conversation.get(n)));
+            if (n < conversation.size() - 1) {
+                input.put(new JSONObject().put("role", "assistant").put("content", "Previous assistant reply"));
             }
         }
+
+        JSONObject body = new JSONObject();
+        body.put("model", model);
+        body.put("instructions", "You are Waheed AI Agent, a concise personal Android assistant. Answer naturally. Do not claim you performed a phone action unless the app actually provides that tool. When asked to perform an action that V2 cannot yet perform, clearly say it is coming in a later version.");
+        body.put("input", input);
+
+        HttpURLConnection c = (HttpURLConnection) new URL("https://api.openai.com/v1/responses").openConnection();
+        c.setRequestMethod("POST");
+        c.setConnectTimeout(20000);
+        c.setReadTimeout(30000);
+        c.setRequestProperty("Authorization", "Bearer " + key);
+        c.setRequestProperty("Content-Type", "application/json");
+        c.setDoOutput(true);
+
+        byte[] bytes = body.toString().getBytes(StandardCharsets.UTF_8);
+        try (OutputStream os = c.getOutputStream()) { os.write(bytes); }
+
+        int code = c.getResponseCode();
+        BufferedReader br = new BufferedReader(new InputStreamReader(
+            code >= 200 && code < 300 ? c.getInputStream() : c.getErrorStream(),
+            StandardCharsets.UTF_8));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) sb.append(line);
+        c.disconnect();
+
+        if (code < 200 || code >= 300) throw new Exception("HTTP " + code);
+        JSONObject json = new JSONObject(sb.toString());
+        String text = json.optString("output_text", "");
+        if (text.isEmpty()) {
+            JSONArray output = json.optJSONArray("output");
+            if (output != null) {
+                for (int i = 0; i < output.length(); i++) {
+                    JSONObject item = output.optJSONObject(i);
+                    JSONArray content = item == null ? null : item.optJSONArray("content");
+                    if (content == null) continue;
+                    for (int j = 0; j < content.length(); j++) {
+                        JSONObject part = content.optJSONObject(j);
+                        if (part != null && "output_text".equals(part.optString("type"))) {
+                            text = part.optString("text", "");
+                            if (!text.isEmpty()) break;
+                        }
+                    }
+                    if (!text.isEmpty()) break;
+                }
+            }
+        }
+        if (text.isEmpty()) text = "I received the response, but could not read its text.";
+        return text;
+    }
+
+    private void speak(String text) {
+        if (tts != null) tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "agent_reply");
     }
 
     @Override protected void onDestroy() {
+        executor.shutdownNow();
         if (tts != null) { tts.stop(); tts.shutdown(); }
         super.onDestroy();
     }

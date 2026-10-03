@@ -11,22 +11,6 @@ android {
         versionCode 41
         versionName '4.1'
     }
-
-    signingConfigs {
-        ciRelease {
-            storeFile file(System.getProperty("user.home") + "/waheed-agent-release.jks")
-            storePassword "changeit"
-            keyAlias "waheed"
-            keyPassword "changeit"
-        }
-    }
-
-    buildTypes {
-        release {
-            minifyEnabled false
-            signingConfig signingConfigs.ciRelease
-        }
-    }
 }
 
 dependencies {

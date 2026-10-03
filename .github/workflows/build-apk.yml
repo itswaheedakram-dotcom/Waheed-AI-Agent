@@ -33,13 +33,7 @@ jobs:
 
       - name: Create CI release signing key
         env:
-          WAHEED_KEYSTORE_PASSWORD: changeit
-          WAHEED_KEY_ALIAS: waheed
-          WAHEED_KEY_PASSWORD: changeit
         run: |
-          : "${WAHEED_KEYSTORE_PASSWORD:?Missing WAHEED_KEYSTORE_PASSWORD secret}"
-          : "${WAHEED_KEY_ALIAS:?Missing WAHEED_KEY_ALIAS secret}"
-          : "${WAHEED_KEY_PASSWORD:?Missing WAHEED_KEY_PASSWORD secret}"
           keytool -genkeypair -v             -keystore "$HOME/waheed-agent-release.jks"             -storepass "$WAHEED_KEYSTORE_PASSWORD"             -keypass "$WAHEED_KEY_PASSWORD"             -alias "$WAHEED_KEY_ALIAS"             -keyalg RSA             -keysize 2048             -validity 10000             -dname "CN=Waheed AI Agent, OU=Mobile, O=Waheed AI Agent, L=Pakistan, ST=Punjab, C=PK"
 
       - name: Build signed release APK

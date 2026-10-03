@@ -252,31 +252,6 @@ public class MainActivity extends Activity {
         }
         status.setText("Local AI is preparing...");
         speak("The local AI model is still preparing. Please try again in a moment.");
-        if (!hasKey()) {
-            String memory = agentCore.memorySummary();
-            String reply = "I can hear you. My offline Agent Core is active. " + memory + " Add an AI model later for natural-language reasoning.";
-            status.setText("AI key needed");
-            speak(reply);
-            return;
-        }
-        status.setText("Thinking...");
-        final String userText = heard;
-        executor.execute(() -> {
-            try {
-                String reply = callResponsesApi(userText);
-                runOnUiThread(() -> {
-                    transcript.setText("You: " + userText + "\n\nAgent: " + reply);
-                    status.setText("AI ready • Internet mode");
-                    speak(reply);
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    status.setText("AI error");
-                    speak("I could not reach the AI service. Please check your internet and API settings.");
-                    Toast.makeText(this, "AI error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-            }
-        });
     }
 
     private boolean handleDeviceAction(String raw) {

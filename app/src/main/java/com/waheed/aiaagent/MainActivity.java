@@ -42,11 +42,13 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final ArrayList<String> conversation = new ArrayList<>();
+    private AgentCore agentCore;
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         setContentView(R.layout.activity_main);
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        agentCore = new AgentCore(this);
         status = findViewById(R.id.status);
         transcript = findViewById(R.id.transcript);
         Button mic = findViewById(R.id.micButton);
@@ -60,7 +62,8 @@ public class MainActivity extends Activity {
         mic.setOnClickListener(v -> startListening());
         settings.setOnClickListener(v -> showSettings());
         info.setOnClickListener(v -> showCapabilities());
-        status.setText(hasKey() ? "AI ready • Internet mode" : "AI key needed • Tap Settings");
+        status.setText(hasKey() ? "AI ready • Internet mode" : "Offline agent ready • Tap Speak");
+        transcript.setText("Agent Core V5.0 ready.");
     }
 
     private boolean hasKey() {
@@ -123,7 +126,12 @@ public class MainActivity extends Activity {
             "• Open WhatsApp\\n" +
             "• Prepare a WhatsApp message for review\\n" +
             "• YouTube search\\n\\n" +
-            "🤖 AI Brain\\n" +
+            "🤖 Agent Core\\n" +
+            "• Offline command understanding\\n" +
+            "• Roman Urdu / English aliases\\n" +
+            "• Multiple commands in one sentence\\n" +
+            "• Local command memory\\n" +
+            "• Successful-command learning hints\\n" +
             "• OpenAI Responses API support\\n" +
             "• Conversation context\\n" +
             "• Internet mode\\n\\n" +
@@ -132,7 +140,7 @@ public class MainActivity extends Activity {
             "• No AccessibilityService / hidden phone control\\n\\n" +
             "More features will be added in future versions.";
         new android.app.AlertDialog.Builder(this)
-            .setTitle("Waheed AI Agent • V4.4")
+            .setTitle("Waheed AI Agent • V5.0")
             .setMessage(message)
             .setPositiveButton("OK", null)
             .show();
@@ -163,10 +171,32 @@ public class MainActivity extends Activity {
     }
 
     private void askAI(String heard) {
+        String normalized = agentCore.normalize(heard);
+        ArrayList<String> commands = agentCore.splitCommands(heard);
+        if (commands.size() > 1) {
+            boolean handledAny = false;
+            StringBuilder results = new StringBuilder();
+            for (String command : commands) {
+                boolean handled = handleDeviceAction(command);
+                handledAny = handledAny || handled;
+                if (handled && transcript.getText() != null) {
+                    if (results.length() > 0) results.append("\\n");
+                    results.append(transcript.getText().toString().replace("Agent: ", ""));
+                }
+            }
+            if (handledAny) {
+                transcript.setText("You: " + heard + "\\n\\nAgent: " + results);
+                return;
+            }
+        }
+        heard = normalized;
         transcript.setText("You: " + heard);
+        String learningHint = agentCore.learningHint(heard);
+        if (!learningHint.isEmpty()) status.setText("Memory match found");
         if (handleDeviceAction(heard)) return;
         if (!hasKey()) {
-            String reply = "I can hear you. Open Settings and add your AI API key to enable my brain.";
+            String memory = agentCore.memorySummary();
+            String reply = "I can hear you. My offline Agent Core is active. " + memory + " Add an AI model later for natural-language reasoning.";
             status.setText("AI key needed");
             speak(reply);
             return;
@@ -260,7 +290,7 @@ public class MainActivity extends Activity {
         String s = q.toLowerCase(Locale.ROOT);
         try {
             if (s.equals("go back") || s.equals("back") || s.contains("go back") || s.contains("wapas jao") || s.contains("peechay jao")) {
-                return localActionResult(false, "Back control will be added with Accessibility in a later version.");
+                return localActionResult(false, "Back is not controlled automatically because this version avoids Accessibility-based phone control.");
             }
             if (s.equals("go home") || s.equals("home screen") || s.contains("go to home") || s.contains("home pe jao") || s.contains("home screen kholo")) {
                 Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -418,6 +448,7 @@ public class MainActivity extends Activity {
     }
 
     private boolean localActionResult(boolean ok, String message) {
+        agentCore.record(transcript == null ? "" : transcript.getText().toString().replace("You: ", ""), message, ok);
         status.setText(ok ? "Action completed" : "Action needs permission");
         transcript.setText("Agent: " + message);
         speak(message);

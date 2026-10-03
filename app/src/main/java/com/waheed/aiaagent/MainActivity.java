@@ -51,6 +51,7 @@ public class MainActivity extends Activity {
         transcript = findViewById(R.id.transcript);
         Button mic = findViewById(R.id.micButton);
         Button settings = findViewById(R.id.settingsButton);
+        Button info = findViewById(R.id.infoButton);
 
         tts = new TextToSpeech(this, result -> {
             if (result == TextToSpeech.SUCCESS) tts.setLanguage(Locale.US);
@@ -58,6 +59,7 @@ public class MainActivity extends Activity {
 
         mic.setOnClickListener(v -> startListening());
         settings.setOnClickListener(v -> showSettings());
+        info.setOnClickListener(v -> showCapabilities());
         status.setText(hasKey() ? "AI ready • Internet mode" : "AI key needed • Tap Settings");
     }
 
@@ -94,6 +96,46 @@ public class MainActivity extends Activity {
                     .putString("model", model.getText().toString().trim()).apply();
                 status.setText(hasKey() ? "AI ready • Internet mode" : "AI key needed");
             }).show();
+    }
+
+    private void showCapabilities() {
+        String message =
+            "WHAT I CAN DO NOW\\n\\n" +
+            "🎙 Voice\\n" +
+            "• Listen to your voice commands\\n" +
+            "• Speak responses aloud\\n\\n" +
+            "📱 Phone & Apps\\n" +
+            "• Home screen\\n" +
+            "• Calculator\\n" +
+            "• Clock / alarms\\n" +
+            "• Gallery / Photos\\n" +
+            "• Files / Downloads\\n" +
+            "• Google Maps\\n" +
+            "• Browser / Google search\\n" +
+            "• Calendar\\n" +
+            "• Email\\n" +
+            "• Share menu\\n" +
+            "• Phone dialer\\n" +
+            "• Phone Settings\\n" +
+            "• Wi-Fi / Bluetooth settings\\n" +
+            "• Sound / Display / Language settings\\n\\n" +
+            "💬 Communication\\n" +
+            "• Open WhatsApp\\n" +
+            "• Prepare a WhatsApp message for review\\n" +
+            "• YouTube search\\n\\n" +
+            "🤖 AI Brain\\n" +
+            "• OpenAI Responses API support\\n" +
+            "• Conversation context\\n" +
+            "• Internet mode\\n\\n" +
+            "🔒 Safety\\n" +
+            "• Uses normal Android APIs and user-triggered actions\\n" +
+            "• No AccessibilityService / hidden phone control\\n\\n" +
+            "More features will be added in future versions.";
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Waheed AI Agent • V4.4")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .show();
     }
 
     private void startListening() {

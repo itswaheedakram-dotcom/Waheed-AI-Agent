@@ -110,16 +110,16 @@ public class MainActivity extends Activity {
             "• Multiple commands in one sentence\\n" +
             "• Local command memory\\n" +
             "• Successful-command learning hints\\n" +
-            "• OpenAI Responses API support\\n" +
+            "• Fully local AI inference\\n" +
             "• Conversation context\\n" +
-            "• Internet mode\\n" +
-            "• Native local GGUF inference (V5.2)\\n\\n" +
+            "• Offline mode\\n" +
+            "• Bundled Qwen3 GGUF inference (V5.3)\\n\\n" +
             "🔒 Safety\\n" +
             "• Uses normal Android APIs and user-triggered actions\\n" +
             "• No AccessibilityService / hidden phone control\\n\\n" +
             "More features will be added in future versions.";
         new android.app.AlertDialog.Builder(this)
-            .setTitle("Waheed AI Agent • V5.2")
+            .setTitle("Waheed AI Agent • V5.3")
             .setMessage(message)
             .setPositiveButton("OK", null)
             .show();
@@ -141,24 +141,33 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 71) {
-            boolean ok = localModelManager.handleResult(requestCode, resultCode, data);
-            if (ok) {
-                status.setText("Local GGUF model selected");
-                transcript.setText("Local AI model selected.\n\n" + localModelManager.status() + "\n\nLoading native local AI engine...");
-                loadLocalModelAsync();
-                speak("Local AI model selected.");
-            } else if (resultCode == RESULT_OK) {
-                Toast.makeText(this, "Could not import the model.", Toast.LENGTH_LONG).show();
-            }
-            return;
-        }
         if (requestCode != REQ_SPEECH) return;
         if (resultCode == RESULT_OK && data != null) {
             ArrayList<String> r = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             if (r != null && !r.isEmpty()) askAI(r.get(0));
             else status.setText("Ready");
         } else status.setText("Ready");
+    }
+
+    private void prepareBundledModelAsync() {
+        if (localModelManager.isModelSelected()) {
+            loadLocalModelAsync();
+            return;
+        }
+        status.setText("Preparing bundled local AI...");
+        transcript.setText("Preparing the built-in Qwen3 model. This happens only on the first launch.");
+        executor.execute(() -> {
+            boolean ok = localModelManager.prepareBundledModel();
+            runOnUiThread(() -> {
+                if (ok) {
+                    status.setText("Bundled model ready • Loading AI...");
+                    loadLocalModelAsync();
+                } else {
+                    status.setText("Local AI model error");
+                    Toast.makeText(this, "Could not prepare the bundled AI model.", Toast.LENGTH_LONG).show();
+                }
+            });
+        });
     }
 
     private void runLocalModel(String userText) {
@@ -240,10 +249,8 @@ public class MainActivity extends Activity {
             runLocalModel(heard);
             return;
         }
-        if (localModelManager.isModelSelected()) {
-            runLocalModel(heard);
-            return;
-        }
+        status.setText("Local AI is preparing...");
+        speak("The local AI model is still preparing. Please try again in a moment.");
         if (!hasKey()) {
             String memory = agentCore.memorySummary();
             String reply = "I can hear you. My offline Agent Core is active. " + memory + " Add an AI model later for natural-language reasoning.";
@@ -269,71 +276,6 @@ public class MainActivity extends Activity {
                 });
             }
         });
-    }
-
-    private String callResponsesApi(String userText) throws Exception {
-        String key = prefs.getString("api_key", "").trim();
-        String model = prefs.getString("model", "gpt-6-luna").trim();
-        if (model.isEmpty()) model = "gpt-6-luna";
-
-        conversation.add(userText);
-        JSONArray input = new JSONArray();
-        int start = Math.max(0, conversation.size() - 12);
-        for (int n = start; n < conversation.size(); n++) {
-            input.put(new JSONObject().put("role", "user").put("content", conversation.get(n)));
-            if (n < conversation.size() - 1) {
-                input.put(new JSONObject().put("role", "assistant").put("content", "Previous assistant reply"));
-            }
-        }
-
-        JSONObject body = new JSONObject();
-        body.put("model", model);
-        body.put("instructions", "You are Waheed AI Agent, a concise personal Android assistant. Answer naturally. Do not claim you performed a phone action unless the app actually provides that tool. When asked to perform an action that V2 cannot yet perform, clearly say it is coming in a later version.");
-        body.put("input", input);
-
-        HttpURLConnection c = (HttpURLConnection) new URL("https://api.openai.com/v1/responses").openConnection();
-        c.setRequestMethod("POST");
-        c.setConnectTimeout(20000);
-        c.setReadTimeout(30000);
-        c.setRequestProperty("Authorization", "Bearer " + key);
-        c.setRequestProperty("Content-Type", "application/json");
-        c.setDoOutput(true);
-
-        byte[] bytes = body.toString().getBytes(StandardCharsets.UTF_8);
-        try (OutputStream os = c.getOutputStream()) { os.write(bytes); }
-
-        int code = c.getResponseCode();
-        BufferedReader br = new BufferedReader(new InputStreamReader(
-            code >= 200 && code < 300 ? c.getInputStream() : c.getErrorStream(),
-            StandardCharsets.UTF_8));
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = br.readLine()) != null) sb.append(line);
-        c.disconnect();
-
-        if (code < 200 || code >= 300) throw new Exception("HTTP " + code);
-        JSONObject json = new JSONObject(sb.toString());
-        String text = json.optString("output_text", "");
-        if (text.isEmpty()) {
-            JSONArray output = json.optJSONArray("output");
-            if (output != null) {
-                for (int i = 0; i < output.length(); i++) {
-                    JSONObject item = output.optJSONObject(i);
-                    JSONArray content = item == null ? null : item.optJSONArray("content");
-                    if (content == null) continue;
-                    for (int j = 0; j < content.length(); j++) {
-                        JSONObject part = content.optJSONObject(j);
-                        if (part != null && "output_text".equals(part.optString("type"))) {
-                            text = part.optString("text", "");
-                            if (!text.isEmpty()) break;
-                        }
-                    }
-                    if (!text.isEmpty()) break;
-                }
-            }
-        }
-        if (text.isEmpty()) text = "I received the response, but could not read its text.";
-        return text;
     }
 
     private boolean handleDeviceAction(String raw) {

@@ -204,11 +204,12 @@ public class MainActivity extends Activity {
             return;
         }
         status.setText("Thinking...");
+        final String userText = heard;
         executor.execute(() -> {
             try {
-                String reply = callResponsesApi(heard);
+                String reply = callResponsesApi(userText);
                 runOnUiThread(() -> {
-                    transcript.setText("You: " + heard + "\n\nAgent: " + reply);
+                    transcript.setText("You: " + userText + "\n\nAgent: " + reply);
                     status.setText("AI ready • Internet mode");
                     speak(reply);
                 });

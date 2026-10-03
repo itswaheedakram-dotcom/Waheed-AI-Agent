@@ -218,12 +218,41 @@ public class MainActivity extends Activity {
         String s = q.toLowerCase(Locale.ROOT);
         try {
             if (s.equals("go back") || s.equals("back") || s.contains("go back") || s.contains("wapas jao") || s.contains("peechay jao")) {
-                boolean ok = AgentAccessibilityService.performGlobal(AgentAccessibilityService.GLOBAL_BACK);
-                return localActionResult(ok, ok ? "Going back." : "Back action needs Accessibility access.");
+                return localActionResult(false, "Back control will be added with Accessibility in a later version.");
             }
             if (s.equals("go home") || s.equals("home screen") || s.contains("go to home") || s.contains("home pe jao") || s.contains("home screen kholo")) {
-                boolean ok = AgentAccessibilityService.performGlobal(AgentAccessibilityService.GLOBAL_HOME);
-                return localActionResult(ok, ok ? "Going to the home screen." : "Home action needs Accessibility access.");
+                Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(home);
+                return localActionResult(true, "Going to the home screen.");
+            }
+            if (s.contains("open calculator") || s.contains("calculator kholo") || s.contains("calculator open karo")) {
+                startActivity(new Intent(Intent.ACTION_MAIN).addCategory("android.intent.category.APP_CALCULATOR"));
+                return localActionResult(true, "Opening calculator.");
+            }
+            if (s.contains("open clock") || s.contains("clock kholo") || s.contains("clock open karo")) {
+                startActivity(new Intent(AlarmClock.ACTION_SHOW_ALARMS));
+                return localActionResult(true, "Opening the clock alarms.");
+            }
+            if (s.contains("open gallery") || s.contains("gallery kholo") || s.contains("photos kholo")) {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("content://media/internal/images/media")));
+                return localActionResult(true, "Opening photos.");
+            }
+            if (s.contains("open files") || s.contains("files kholo") || s.contains("file manager kholo")) {
+                Intent files = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
+                startActivity(files);
+                return localActionResult(true, "Opening files.");
+            }
+            if (s.contains("open maps") || s.contains("maps kholo") || s.contains("google maps kholo")) {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode("Google Maps"))));
+                return localActionResult(true, "Opening maps.");
+            }
+            if (s.contains("wifi settings") || s.contains("wifi kholo") || s.contains("wifi settings kholo")) {
+                startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));
+                return localActionResult(true, "Opening Wi-Fi settings.");
+            }
+            if (s.contains("bluetooth settings") || s.contains("bluetooth kholo")) {
+                startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));
+                return localActionResult(true, "Opening Bluetooth settings.");
             }
             if (s.contains("open accessibility") || s.contains("accessibility settings")) {
                 startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));

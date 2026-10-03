@@ -308,50 +308,6 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void loadLocalModelAsync() {
-        final String path = localModelManager.getModelFile().getAbsolutePath();
-        status.setText("Loading local AI model...");
-        executor.execute(() -> {
-            try {
-                String result = LocalLlmEngine.nativeLoad(path);
-                runOnUiThread(() -> {
-                    status.setText("Local AI ready • Offline mode");
-                    transcript.setText("Local AI engine: " + result);
-                    speak("Local AI is ready offline.");
-                });
-            } catch (Throwable e) {
-                runOnUiThread(() -> {
-                    status.setText("Local AI load error");
-                    transcript.setText("Local AI could not load the GGUF model.\n\n" + e.getMessage());
-                    Toast.makeText(this, "Local AI load error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-            }
-        });
-    }
-
-    private void runLocalModel(String userText) {
-        status.setText("Thinking • Local AI...");
-        executor.execute(() -> {
-            try {
-                String reply = LocalLlmEngine.nativeGenerate(LocalLlmEngine.buildPrompt(userText), 256);
-                if (reply == null || reply.trim().isEmpty()) reply = "I could not generate a local response.";
-                final String finalReply = reply.trim();
-                runOnUiThread(() -> {
-                    transcript.setText("You: " + userText + "\n\nAgent: " + finalReply);
-                    status.setText("Local AI ready • Offline mode");
-                    agentCore.record(userText, finalReply, true);
-                    speak(finalReply);
-                });
-            } catch (Throwable e) {
-                runOnUiThread(() -> {
-                    status.setText("Local AI error");
-                    speak("The local AI model could not generate a response.");
-                    Toast.makeText(this, "Local AI error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-            }
-        });
-    }
-
     private String callResponsesApi(String userText) throws Exception {
         String key = prefs.getString("api_key", "").trim();
         String model = prefs.getString("model", "gpt-6-luna").trim();

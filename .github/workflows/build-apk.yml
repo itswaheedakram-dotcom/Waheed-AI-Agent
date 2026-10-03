@@ -28,20 +28,26 @@ jobs:
           yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
           /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;29.0.14206865"
 
+      - name: Download bundled Qwen3 local AI model
+        run: |
+          mkdir -p app/src/main/assets
+          curl -L --fail --retry 3 -o app/src/main/assets/Qwen3-0.6B-Q4_K_M.gguf "https://huggingface.co/tensorblock/Qwen_Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q4_K_M.gguf?download=true"
+          ls -lh app/src/main/assets/Qwen3-0.6B-Q4_K_M.gguf
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
 
-      - name: Build v5.2 local AI APK
+      - name: Build v5.3 bundled local AI APK
         run: gradle --no-daemon assembleDebug
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/Waheed-AI-Agent-v5.2-local-ai-debug.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/Waheed-AI-Agent-v5.3-bundled-local-ai-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Waheed-AI-Agent-v5.2-local-ai-debug
+          name: Waheed-AI-Agent-v5.3-bundled-local-ai-debug
           path: app/build/outputs/apk/debug/Waheed-AI-Agent-v5.2-local-ai-debug.apk
           if-no-files-found: error

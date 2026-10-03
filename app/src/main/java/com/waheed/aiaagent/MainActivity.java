@@ -64,55 +64,18 @@ public class MainActivity extends Activity {
         });
 
         mic.setOnClickListener(v -> startListening());
-        settings.setOnClickListener(v -> showSettings());
+        settings.setOnClickListener(v -> showLocalModel());
         info.setOnClickListener(v -> showCapabilities());
         localModel.setOnClickListener(v -> showLocalModel());
-        status.setText(localModelManager.isModelSelected() ? "Local AI ready • Offline mode" : (hasKey() ? "AI ready • Internet mode" : "Offline agent ready • Tap Speak"));
-        transcript.setText("Agent Core V5.2 ready.\n\nLocal AI model: " + (localModelManager.isModelSelected() ? "selected" : "not selected"));
-    }
-
-    private boolean hasKey() {
-        return !prefs.getString("api_key", "").trim().isEmpty();
-    }
-
-    private void showSettings() {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        int pad = (int)(20 * getResources().getDisplayMetrics().density);
-        box.setPadding(pad, 0, pad, 0);
-
-        EditText key = new EditText(this);
-        key.setHint("API key");
-        key.setSingleLine(true);
-        key.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        key.setText(prefs.getString("api_key", ""));
-        box.addView(key);
-
-        EditText model = new EditText(this);
-        model.setHint("Model");
-        model.setSingleLine(true);
-        model.setText(prefs.getString("model", "gpt-6-luna"));
-        box.addView(model);
-
-        new android.app.AlertDialog.Builder(this)
-            .setTitle("AI Settings")
-            .setMessage("V2 uses the OpenAI Responses API. For security, do not publish your key or commit it to GitHub.")
-            .setView(box)
-            .setNegativeButton("Cancel", null)
-            .setPositiveButton("Save", (d, w) -> {
-                prefs.edit().putString("api_key", key.getText().toString().trim())
-                    .putString("model", model.getText().toString().trim()).apply();
-                status.setText(hasKey() ? "AI ready • Internet mode" : "AI key needed");
-            }).show();
+        status.setText(localModelManager.isModelSelected() ? "Local AI ready • Offline mode" : "Starting bundled local AI...");
+        transcript.setText("Waheed AI Agent V5.3\n\nBundled local AI is starting. No API key or model selection is required.");\n        prepareBundledModelAsync();
     }
 
     private void showLocalModel() {
-        String statusText = localModelManager.status();
         new android.app.AlertDialog.Builder(this)
-            .setTitle("Local AI Brain • V5.2")
-            .setMessage(statusText + "\\n\\nSelect a GGUF model stored on your phone. The model stays inside the app and is not uploaded to a cloud service.\\n\\nNote: V5.2 adds native llama.cpp inference. A compatible GGUF model can now run directly on the phone without an API key or cloud upload.")
-            .setNegativeButton("Close", null)
-            .setPositiveButton("Select GGUF", (d, w) -> localModelManager.chooseModel())
+            .setTitle("Local AI Brain • V5.3")
+            .setMessage("Bundled Qwen3 local AI model.\\n\\nNo API key, Google Drive, or manual GGUF selection is required. The model is included in this app and runs on your phone.\\n\\nFirst launch copies the bundled model into private app storage; later launches reuse it.")
+            .setPositiveButton("OK", null)
             .show();
     }
 

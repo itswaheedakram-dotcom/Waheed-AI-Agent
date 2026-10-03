@@ -3,51 +3,135 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center_horizontal"
-    android:background="#FFFFFF">
+    android:padding="20dp"
+    android:background="#F6F8FC">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="WAHEED AI AGENT"
-        android:textStyle="bold"
-        android:textSize="24sp"
-        android:textColor="#111111"
-        android:layout_marginTop="45dp"/>
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="14dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="WAHEED AI"
+                android:textStyle="bold"
+                android:textSize="26sp"
+                android:textColor="#111827"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Your personal Android agent"
+                android:textSize="13sp"
+                android:textColor="#6B7280"
+                android:layout_marginTop="2dp"/>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/infoButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="ⓘ"
+            android:textSize="22sp"
+            android:minWidth="0dp"
+            android:padding="0dp"
+            android:backgroundTint="#E8ECF7"
+            android:textColor="#243B73"/>
+    </LinearLayout>
 
     <TextView
         android:id="@+id/status"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Ready"
-        android:textSize="16sp"
-        android:textColor="#666666"
-        android:layout_marginTop="12dp"/>
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="#2563EB"
+        android:background="#EAF2FF"
+        android:padding="12dp"
+        android:layout_marginTop="18dp"/>
 
-    <TextView
-        android:id="@+id/transcript"
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="center"
-        android:text="Tap SPEAK and talk to your AI agent"
-        android:textSize="20sp"
-        android:textColor="#222222"
-        android:padding="20dp"/>
+        android:layout_marginTop="14dp"
+        android:fillViewport="true">
 
-    <Button
-        android:id="@+id/settingsButton"
-        android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#FFFFFF"
+            android:padding="18dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Conversation"
+                android:textStyle="bold"
+                android:textSize="15sp"
+                android:textColor="#374151"/>
+
+            <TextView
+                android:id="@+id/transcript"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="220dp"
+                android:gravity="top"
+                android:text="Tap SPEAK and talk to your AI agent"
+                android:textSize="18sp"
+                android:textColor="#111827"
+                android:paddingTop="16dp"/>
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="⚙ AI SETTINGS"
-        android:layout_marginBottom="10dp"/>
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="12dp">
 
-    <Button
-        android:id="@+id/micButton"
-        android:layout_width="180dp"
-        android:layout_height="60dp"
-        android:text="🎙  SPEAK"
-        android:textSize="17sp"
-        android:layout_marginBottom="30dp"/>
+        <Button
+            android:id="@+id/settingsButton"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="⚙  AI SETTINGS"
+            android:textSize="14sp"
+            android:backgroundTint="#E8ECF7"
+            android:textColor="#243B73"
+            android:layout_marginEnd="8dp"/>
+
+        <Button
+            android:id="@+id/micButton"
+            android:layout_width="0dp"
+            android:layout_height="58dp"
+            android:layout_weight="1.25"
+            android:text="🎙  SPEAK"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:backgroundTint="#243B73"
+            android:textColor="#FFFFFF"/>
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Offline commands work without an AI API key"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:textColor="#6B7280"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp"/>
 </LinearLayout>

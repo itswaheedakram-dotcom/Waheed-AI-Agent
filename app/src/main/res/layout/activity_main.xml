@@ -103,6 +103,17 @@
         android:layout_marginTop="12dp">
 
         <Button
+            android:id="@+id/localModelButton"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="0.85"
+            android:text="🧠 LOCAL AI"
+            android:textSize="12sp"
+            android:backgroundTint="#E8ECF7"
+            android:textColor="#243B73"
+            android:layout_marginEnd="8dp"/>
+
+        <Button
             android:id="@+id/settingsButton"
             android:layout_width="0dp"
             android:layout_height="52dp"

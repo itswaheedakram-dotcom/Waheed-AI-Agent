@@ -26,13 +26,13 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - name: Build v4.1 safe debug APK
+      - name: Build v4.2 safe debug APK
         run: gradle --no-daemon assembleDebug
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/Waheed-AI-Agent-v4.1-safe-debug.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/Waheed-AI-Agent-v4.2-safe-debug.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Waheed-AI-Agent-v4.1-safe-debug
-          path: app/build/outputs/apk/debug/Waheed-AI-Agent-v4.1-safe-debug.apk
+          name: Waheed-AI-Agent-v4.2-safe-debug
+          path: app/build/outputs/apk/debug/Waheed-AI-Agent-v4.2-safe-debug.apk
           if-no-files-found: error

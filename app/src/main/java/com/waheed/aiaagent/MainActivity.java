@@ -68,7 +68,8 @@ public class MainActivity extends Activity {
         info.setOnClickListener(v -> showCapabilities());
         localModel.setOnClickListener(v -> showLocalModel());
         status.setText(localModelManager.isModelSelected() ? "Local AI ready • Offline mode" : "Starting bundled local AI...");
-        transcript.setText("Waheed AI Agent V5.3\n\nBundled local AI is starting. No API key or model selection is required.");\n        prepareBundledModelAsync();
+        transcript.setText("Waheed AI Agent V5.3\n\nBundled local AI is starting. No API key or model selection is required.");
+        prepareBundledModelAsync();
     }
 
     private void showLocalModel() {

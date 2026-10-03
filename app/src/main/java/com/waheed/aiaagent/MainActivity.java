@@ -254,9 +254,53 @@ public class MainActivity extends Activity {
                 startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));
                 return localActionResult(true, "Opening Bluetooth settings.");
             }
-            if (s.contains("open accessibility") || s.contains("accessibility settings")) {
-                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-                return localActionResult(true, "Opening Accessibility settings.");
+            if (s.contains("open browser") || s.contains("browser kholo") || s.contains("chrome kholo")) {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/")));
+                return localActionResult(true, "Opening the browser.");
+            }
+            if (s.contains("open calendar") || s.contains("calendar kholo")) {
+                startActivity(new Intent(Intent.ACTION_MAIN).addCategory("android.intent.category.APP_CALENDAR"));
+                return localActionResult(true, "Opening calendar.");
+            }
+            if (s.contains("open downloads") || s.contains("downloads kholo")) {
+                Intent downloads = new Intent(Intent.ACTION_VIEW);
+                downloads.setData(Uri.parse("content://com.android.providers.downloads.documents/root"));
+                if (downloads.resolveActivity(getPackageManager()) != null) {
+                    startActivity(downloads);
+                } else {
+                    startActivity(new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE));
+                }
+                return localActionResult(true, "Opening downloads.");
+            }
+            if (s.contains("date settings") || s.contains("date and time") || s.contains("date time settings")) {
+                startActivity(new Intent(Settings.ACTION_DATE_SETTINGS));
+                return localActionResult(true, "Opening date and time settings.");
+            }
+            if (s.contains("sound settings") || s.contains("sound kholo")) {
+                startActivity(new Intent(Settings.ACTION_SOUND_SETTINGS));
+                return localActionResult(true, "Opening sound settings.");
+            }
+            if (s.contains("display settings") || s.contains("display kholo")) {
+                startActivity(new Intent(Settings.ACTION_DISPLAY_SETTINGS));
+                return localActionResult(true, "Opening display settings.");
+            }
+            if (s.contains("language settings") || s.contains("language kholo")) {
+                startActivity(new Intent(Settings.ACTION_LOCALE_SETTINGS));
+                return localActionResult(true, "Opening language settings.");
+            }
+            if (s.contains("open email") || s.contains("email kholo")) {
+                Intent email = new Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"));
+                if (email.resolveActivity(getPackageManager()) != null) startActivity(email);
+                else startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://mail.google.com/")));
+                return localActionResult(true, "Opening email.");
+            }
+            if (s.startsWith("share ")) {
+                String shareText = q.replaceFirst("(?i)^share\\s*", "").trim();
+                if (!shareText.isEmpty()) {
+                    Intent share = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, shareText);
+                    startActivity(Intent.createChooser(share, "Share with"));
+                    return localActionResult(true, "Opening the share menu.");
+                }
             }
             if (s.contains("open whatsapp") || s.contains("whatsapp kholo") || s.contains("whatsapp open karo")) {
                 Intent i = getPackageManager().getLaunchIntentForPackage("com.whatsapp");

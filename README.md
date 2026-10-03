@@ -1,27 +1,26 @@
-# Waheed AI Agent — v4.0
+# Waheed AI Agent — V5.0
 
-Current release: **v4.0**
+V5.0 introduces the first real **Agent Core** layer while keeping the app policy-safe and usable without an AI API key.
 
-### Included in v4.0
-- Voice input and spoken responses
-- OpenAI AI brain with conversation context
-- Internet mode
-- Android device actions
-- AccessibilityService foundation
-- Back / Home actions
-- Open WhatsApp, YouTube and Settings
-- YouTube / web search
-- Dialer launch
-- Alarm creation
-- WhatsApp message preparation
-- Roman Urdu device commands
+## V5.0 Agent Core
 
-## Versioning
-- **v4.0** = V3 + V4 combined release
-- Android versionCode: **40**
-- Android versionName: **4.0**
+- Offline command normalization for English and common Roman Urdu variations.
+- Multiple user commands can be routed from one sentence using connectors such as **aur / and then / then / phir**.
+- Local command memory stored on-device with SharedPreferences.
+- Successful command experiences are retained as lightweight learning examples.
+- Repeated successful commands can produce a memory-match hint.
+- Existing user-triggered Android Intent actions remain the execution layer.
+- OpenAI Responses API remains an optional online reasoning layer.
+- No AccessibilityService, hidden automation, SMS/call-log permissions, package enumeration, or background phone control.
 
-## GitHub Actions APK build
-The repository includes a workflow that automatically builds the debug APK on GitHub Actions.
+## Architecture direction
 
-Future releases will use the same versioning system, e.g. v4.1, v4.2, v5.0.
+The project follows a lightweight Java adaptation of the architecture patterns found in open-source local Android agents such as Jandal AI and Prism Local: **Brain/Router → Memory → Action**. Jandal documents local memory, deterministic Android skills, tool calling and local inference; Prism Local documents on-device GGUF inference, tool dispatch and local RAG.
+
+The next stage is to add an optional local-model adapter (GGUF/llama.cpp or LiteRT) without making the current APK dependent on a multi-gigabyte model download.
+
+## Version
+
+**V5.0 — Real Agent Core**
+
+Build artifact: `Waheed-AI-Agent-v5.0-safe-debug.apk`

@@ -33,9 +33,9 @@ jobs:
 
       - name: Create CI release signing key
         env:
-          WAHEED_KEYSTORE_PASSWORD: ${{ secrets.WAHEED_KEYSTORE_PASSWORD }}
-          WAHEED_KEY_ALIAS: ${{ secrets.WAHEED_KEY_ALIAS }}
-          WAHEED_KEY_PASSWORD: ${{ secrets.WAHEED_KEY_PASSWORD }}
+          WAHEED_KEYSTORE_PASSWORD: changeit
+          WAHEED_KEY_ALIAS: waheed
+          WAHEED_KEY_PASSWORD: changeit
         run: |
           : "${WAHEED_KEYSTORE_PASSWORD:?Missing WAHEED_KEYSTORE_PASSWORD secret}"
           : "${WAHEED_KEY_ALIAS:?Missing WAHEED_KEY_ALIAS secret}"

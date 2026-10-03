@@ -46,7 +46,7 @@ public final class AgentCore {
         if (normalized.isEmpty()) return parts;
 
         // Keep natural-language search phrases intact.
-        String[] chunks = normalized.split("\s+(?:aur|and then|then|phir)\s+");
+        String[] chunks = normalized.split("\\s+(?:aur|and then|then|phir)\\s+");
         for (String chunk : chunks) {
             String c = chunk.trim();
             if (!c.isEmpty()) parts.add(c);

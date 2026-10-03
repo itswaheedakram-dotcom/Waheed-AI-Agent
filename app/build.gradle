@@ -15,9 +15,9 @@ android {
     signingConfigs {
         ciRelease {
             storeFile file(System.getProperty("user.home") + "/waheed-agent-release.jks")
-            storePassword System.getenv("WAHEED_KEYSTORE_PASSWORD")
-            keyAlias System.getenv("WAHEED_KEY_ALIAS")
-            keyPassword System.getenv("WAHEED_KEY_PASSWORD")
+            storePassword "changeit"
+            keyAlias "waheed"
+            keyPassword "changeit"
         }
     }
 

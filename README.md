@@ -1,17 +1,27 @@
-# Waheed AI Agent — v1
+# Waheed AI Agent — v4.0
 
-First Android prototype:
-- Microphone permission
-- Android speech recognition
-- Spoken response using Android Text-to-Speech
-- Clean base architecture for adding the AI agent next
+Current release: **v4.0**
+
+### Included in v4.0
+- Voice input and spoken responses
+- OpenAI AI brain with conversation context
+- Internet mode
+- Android device actions
+- AccessibilityService foundation
+- Back / Home actions
+- Open WhatsApp, YouTube and Settings
+- YouTube / web search
+- Dialer launch
+- Alarm creation
+- WhatsApp message preparation
+- Roman Urdu device commands
+
+## Versioning
+- **v4.0** = V3 + V4 combined release
+- Android versionCode: **40**
+- Android versionName: **4.0**
 
 ## GitHub Actions APK build
+The repository includes a workflow that automatically builds the debug APK on GitHub Actions.
 
-The repository includes a workflow that builds a debug APK automatically on GitHub Actions.
-
-Next build:
-1. Connect a secure backend to an AI voice model.
-2. Add conversation memory.
-3. Add agent tools for opening apps, calls, alarms, etc.
-4. Add Android AccessibilityService only where appropriate and permitted.
+Future releases will use the same versioning system, e.g. v4.1, v4.2, v5.0.

@@ -43,6 +43,7 @@ public class MainActivity extends Activity {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final ArrayList<String> conversation = new ArrayList<>();
     private AgentCore agentCore;
+    private String lastCommand = "";
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -172,6 +173,7 @@ public class MainActivity extends Activity {
 
     private void askAI(String heard) {
         String normalized = agentCore.normalize(heard);
+        lastCommand = normalized;
         ArrayList<String> commands = agentCore.splitCommands(heard);
         if (commands.size() > 1) {
             boolean handledAny = false;
@@ -448,7 +450,7 @@ public class MainActivity extends Activity {
     }
 
     private boolean localActionResult(boolean ok, String message) {
-        agentCore.record(transcript == null ? "" : transcript.getText().toString().replace("You: ", ""), message, ok);
+        agentCore.record(lastCommand, message, ok);
         status.setText(ok ? "Action completed" : "Action needs permission");
         transcript.setText("Agent: " + message);
         speak(message);

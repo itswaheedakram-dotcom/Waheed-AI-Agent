@@ -12,8 +12,12 @@ public final class LocalLlmEngine {
     public static native void nativeUnload();
 
     public static String buildPrompt(String userText) {
-        return "<|system|>\\nYou are Waheed AI Agent, a helpful personal Android assistant. "
-            + "Answer clearly and concisely. Do not claim that you performed a phone action unless the app actually performed it.\\n"
-            + "<|user|>\\n" + userText + "\\n<|assistant|>\\n";
+        return "<|im_start|>system\n"
+            + "You are Waheed AI Agent, a helpful personal Android assistant. "
+            + "Answer clearly and concisely. You can understand English and Roman Urdu. "
+            + "Do not claim that you performed a phone action unless the app actually performed it."
+            + "<|im_end|>\n"
+            + "<|im_start|>user\n" + userText + "<|im_end|>\n"
+            + "<|im_start|>assistant\n";
     }
 }

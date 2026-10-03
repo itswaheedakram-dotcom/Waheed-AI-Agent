@@ -218,11 +218,11 @@ public class MainActivity extends Activity {
         String q = raw.trim();
         String s = q.toLowerCase(Locale.ROOT);
         try {
-            if (s.equals("go back") || s.equals("back") || s.contains("go back")) {
+            if (s.equals("go back") || s.equals("back") || s.contains("go back") || s.contains("wapas jao") || s.contains("peechay jao")) {
                 boolean ok = AgentAccessibilityService.performGlobal(AgentAccessibilityService.GLOBAL_BACK);
                 return localActionResult(ok, ok ? "Going back." : "Back action needs Accessibility access.");
             }
-            if (s.equals("go home") || s.equals("home screen") || s.contains("go to home")) {
+            if (s.equals("go home") || s.equals("home screen") || s.contains("go to home") || s.contains("home pe jao") || s.contains("home screen kholo")) {
                 boolean ok = AgentAccessibilityService.performGlobal(AgentAccessibilityService.GLOBAL_HOME);
                 return localActionResult(ok, ok ? "Going to the home screen." : "Home action needs Accessibility access.");
             }
@@ -230,13 +230,13 @@ public class MainActivity extends Activity {
                 startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
                 return localActionResult(true, "Opening Accessibility settings.");
             }
-            if (s.contains("open whatsapp")) {
+            if (s.contains("open whatsapp") || s.contains("whatsapp kholo") || s.contains("whatsapp open karo")) {
                 Intent i = getPackageManager().getLaunchIntentForPackage("com.whatsapp");
                 if (i == null) return localActionResult(false, "WhatsApp is not installed.");
                 startActivity(i);
                 return localActionResult(true, "Opening WhatsApp.");
             }
-            if (s.contains("open youtube")) {
+            if (s.contains("open youtube") || s.contains("youtube kholo") || s.contains("youtube open karo")) {
                 startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/")));
                 return localActionResult(true, "Opening YouTube.");
             }
@@ -260,11 +260,11 @@ public class MainActivity extends Activity {
                 startActivity(new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + number)));
                 return localActionResult(true, "Opening the dialer for " + number);
             }
-            if (s.contains("open settings")) {
+            if (s.contains("open settings") || s.contains("settings kholo") || s.contains("settings open karo")) {
                 startActivity(new Intent(Settings.ACTION_SETTINGS));
                 return localActionResult(true, "Opening phone settings.");
             }
-            if (s.contains("set alarm") || s.contains("alarm")) {
+            if (s.contains("set alarm") || s.contains("alarm") || s.contains("alarm lagao") || s.contains("alarm laga do")) {
                 Matcher m = Pattern.compile("(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)?", Pattern.CASE_INSENSITIVE).matcher(q);
                 if (m.find()) {
                     int hour = Integer.parseInt(m.group(1));

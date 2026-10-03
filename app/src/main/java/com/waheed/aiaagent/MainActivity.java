@@ -5,6 +5,9 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.provider.AlarmClock;
+import android.provider.Settings;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
@@ -25,6 +28,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -117,6 +122,7 @@ public class MainActivity extends Activity {
 
     private void askAI(String heard) {
         transcript.setText("You: " + heard);
+        if (handleDeviceAction(heard)) return;
         if (!hasKey()) {
             String reply = "I can hear you. Open Settings and add your AI API key to enable my brain.";
             status.setText("AI key needed");
@@ -205,6 +211,102 @@ public class MainActivity extends Activity {
         }
         if (text.isEmpty()) text = "I received the response, but could not read its text.";
         return text;
+    }
+
+    private boolean handleDeviceAction(String raw) {
+        String q = raw.trim();
+        String s = q.toLowerCase(Locale.ROOT);
+        try {
+            if (s.equals("go back") || s.equals("back") || s.contains("go back")) {
+                boolean ok = AgentAccessibilityService.performGlobal(AgentAccessibilityService.GLOBAL_BACK);
+                return localActionResult(ok, ok ? "Going back." : "Back action needs Accessibility access.");
+            }
+            if (s.equals("go home") || s.equals("home screen") || s.contains("go to home")) {
+                boolean ok = AgentAccessibilityService.performGlobal(AgentAccessibilityService.GLOBAL_HOME);
+                return localActionResult(ok, ok ? "Going to the home screen." : "Home action needs Accessibility access.");
+            }
+            if (s.contains("open accessibility") || s.contains("accessibility settings")) {
+                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+                return localActionResult(true, "Opening Accessibility settings.");
+            }
+            if (s.contains("open whatsapp")) {
+                Intent i = getPackageManager().getLaunchIntentForPackage("com.whatsapp");
+                if (i == null) return localActionResult(false, "WhatsApp is not installed.");
+                startActivity(i);
+                return localActionResult(true, "Opening WhatsApp.");
+            }
+            if (s.contains("open youtube")) {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/")));
+                return localActionResult(true, "Opening YouTube.");
+            }
+            if (s.contains("search youtube") || s.contains("youtube search")) {
+                String term = q.replaceFirst("(?i).*?(search youtube|youtube search)\\s*", "").trim();
+                if (term.isEmpty()) return false;
+                startActivity(new Intent(Intent.ACTION_VIEW,
+                    Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(term))));
+                return localActionResult(true, "Searching YouTube for " + term);
+            }
+            if (s.startsWith("search web ") || s.startsWith("google ")) {
+                String term = q.replaceFirst("(?i)^(search web|google)\\s*", "").trim();
+                if (term.isEmpty()) return false;
+                startActivity(new Intent(Intent.ACTION_VIEW,
+                    Uri.parse("https://www.google.com/search?q=" + Uri.encode(term))));
+                return localActionResult(true, "Searching the web for " + term);
+            }
+            if (s.startsWith("call ") || s.startsWith("dial ")) {
+                String number = q.replaceFirst("(?i)^(call|dial)\\s*", "").replaceAll("[^0-9+]", "");
+                if (number.isEmpty()) return false;
+                startActivity(new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + number)));
+                return localActionResult(true, "Opening the dialer for " + number);
+            }
+            if (s.contains("open settings")) {
+                startActivity(new Intent(Settings.ACTION_SETTINGS));
+                return localActionResult(true, "Opening phone settings.");
+            }
+            if (s.contains("set alarm") || s.contains("alarm")) {
+                Matcher m = Pattern.compile("(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)?", Pattern.CASE_INSENSITIVE).matcher(q);
+                if (m.find()) {
+                    int hour = Integer.parseInt(m.group(1));
+                    int minute = m.group(2) == null ? 0 : Integer.parseInt(m.group(2));
+                    String ap = m.group(3);
+                    if (ap != null) {
+                        if (ap.equalsIgnoreCase("pm") && hour < 12) hour += 12;
+                        if (ap.equalsIgnoreCase("am") && hour == 12) hour = 0;
+                    }
+                    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+                        Intent alarm = new Intent(AlarmClock.ACTION_SET_ALARM)
+                            .putExtra(AlarmClock.EXTRA_HOUR, hour)
+                            .putExtra(AlarmClock.EXTRA_MINUTES, minute)
+                            .putExtra(AlarmClock.EXTRA_MESSAGE, "Waheed AI Agent");
+                        startActivity(alarm);
+                        return localActionResult(true, String.format(Locale.US, "Opening alarm setup for %02d:%02d.", hour, minute));
+                    }
+                }
+            }
+            if (s.startsWith("whatsapp ") || s.startsWith("message whatsapp ")) {
+                Matcher m = Pattern.compile("(?i)^(?:message\\s+)?whatsapp\\s+(\\+?\\d{8,15})\\s+(.+)$").matcher(q);
+                if (m.find()) {
+                    String number = m.group(1).replaceAll("[^0-9]", "");
+                    String message = m.group(2).trim();
+                    Intent wa = new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://wa.me/" + number + "?text=" + Uri.encode(message)));
+                    startActivity(wa);
+                    return localActionResult(true, "Opening WhatsApp with the message ready. You can review and send it.");
+                }
+            }
+        } catch (Exception e) {
+            status.setText("Action error");
+            Toast.makeText(this, "Action error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean localActionResult(boolean ok, String message) {
+        status.setText(ok ? "Action completed" : "Action needs permission");
+        transcript.setText("Agent: " + message);
+        speak(message);
+        return true;
     }
 
     private void speak(String text) {

@@ -64,7 +64,7 @@ public class MainActivity extends Activity {
         settings.setOnClickListener(v -> showSettings());
         info.setOnClickListener(v -> showCapabilities());\n        localModel.setOnClickListener(v -> showLocalModel());
         status.setText(hasKey() ? "AI ready • Internet mode" : "Offline agent ready • Tap Speak");
-        transcript.setText("Agent Core V5.1 ready.\n\nLocal AI model: " + (localModelManager.isModelSelected() ? "selected" : "not selected"));
+        transcript.setText("Agent Core V5.2 ready.\n\nLocal AI model: " + (localModelManager.isModelSelected() ? "selected" : "not selected"));
     }
 
     private boolean hasKey() {
@@ -102,7 +102,7 @@ public class MainActivity extends Activity {
             }).show();
     }
 
-    private void showLocalModel() {\n        String statusText = localModelManager.status();\n        new android.app.AlertDialog.Builder(this)\n            .setTitle("Local AI Brain • V5.1")\n            .setMessage(statusText + "\\n\\nSelect a GGUF model stored on your phone. The model stays inside the app and is not uploaded to a cloud service.\\n\\nNote: V5.1 adds the local model manager and storage foundation. Native llama.cpp inference is the next engine step; the current Agent Core remains fully usable without it.")\n            .setNegativeButton("Close", null)\n            .setPositiveButton("Select GGUF", (d, w) -> localModelManager.chooseModel())\n            .show();\n    }\n\n    private void showCapabilities() {
+    private void showLocalModel() {\n        String statusText = localModelManager.status();\n        new android.app.AlertDialog.Builder(this)\n            .setTitle("Local AI Brain • V5.1")\n            .setMessage(statusText + "\\n\\nSelect a GGUF model stored on your phone. The model stays inside the app and is not uploaded to a cloud service.\\n\\nNote: V5.2 adds native llama.cpp inference. A compatible GGUF model can now run directly on the phone without an API key or cloud upload.")\n            .setNegativeButton("Close", null)\n            .setPositiveButton("Select GGUF", (d, w) -> localModelManager.chooseModel())\n            .show();\n    }\n\n    private void showCapabilities() {
         String message =
             "WHAT I CAN DO NOW\\n\\n" +
             "🎙 Voice\\n" +
@@ -135,13 +135,13 @@ public class MainActivity extends Activity {
             "• Successful-command learning hints\\n" +
             "• OpenAI Responses API support\\n" +
             "• Conversation context\\n" +
-            "• Internet mode\\n" +\n            "• Local GGUF model manager (V5.1)\\n\\n" +
+            "• Internet mode\\n" +\n            "• Native local GGUF inference (V5.2)\\n\\n" +
             "🔒 Safety\\n" +
             "• Uses normal Android APIs and user-triggered actions\\n" +
             "• No AccessibilityService / hidden phone control\\n\\n" +
             "More features will be added in future versions.";
         new android.app.AlertDialog.Builder(this)
-            .setTitle("Waheed AI Agent • V5.1")
+            .setTitle("Waheed AI Agent • V5.2")
             .setMessage(message)
             .setPositiveButton("OK", null)
             .show();
@@ -171,6 +171,56 @@ public class MainActivity extends Activity {
         } else status.setText("Ready");
     }
 
+    private void runLocalModel(String userText) {
+        status.setText("Local AI thinking...");
+        final String prompt = LocalLlmEngine.buildPrompt(userText);
+        executor.execute(() -> {
+            try {
+                String reply = LocalLlmEngine.nativeGenerate(prompt, 256);
+                runOnUiThread(() -> {
+                    if (reply.startsWith("ERROR:")) {
+                        status.setText("Local AI error");
+                        Toast.makeText(this, reply, Toast.LENGTH_LONG).show();
+                    } else {
+                        transcript.setText("You: " + userText + "\n\nLocal AI: " + reply);
+                        status.setText("Local AI ready • Offline");
+                        speak(reply);
+                    }
+                });
+            } catch (Throwable e) {
+                runOnUiThread(() -> {
+                    status.setText("Local AI error");
+                    Toast.makeText(this, "Local AI error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    private void loadLocalModelAsync() {
+        final String path = localModelManager.getModelFile().getAbsolutePath();
+        status.setText("Loading local AI model...");
+        executor.execute(() -> {
+            try {
+                String result = LocalLlmEngine.nativeLoad(path);
+                runOnUiThread(() -> {
+                    if ("OK".equals(result)) {
+                        status.setText("Local AI ready • Offline");
+                        transcript.setText("Local AI brain loaded.\n\nModel is running on this phone without an API key.");
+                        speak("Local AI brain is ready.");
+                    } else {
+                        status.setText("Local AI load error");
+                        Toast.makeText(this, result, Toast.LENGTH_LONG).show();
+                    }
+                });
+            } catch (Throwable e) {
+                runOnUiThread(() -> {
+                    status.setText("Local AI load error");
+                    Toast.makeText(this, "Could not load local AI: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
     private void askAI(String heard) {
         String normalized = agentCore.normalize(heard);
         lastCommand = normalized;
@@ -196,6 +246,10 @@ public class MainActivity extends Activity {
         String learningHint = agentCore.learningHint(heard);
         if (!learningHint.isEmpty()) status.setText("Memory match found");
         if (handleDeviceAction(heard)) return;
+        if (localModelManager.isModelSelected()) {
+            runLocalModel(heard);
+            return;
+        }
         if (!hasKey()) {
             String memory = agentCore.memorySummary();
             String reply = "I can hear you. My offline Agent Core is active. " + memory + " Add an AI model later for natural-language reasoning.";

@@ -25,7 +25,7 @@ public final class AgentCore {
         String s = raw.trim().toLowerCase(Locale.ROOT);
         s = s.replace("’", "'").replace("‘", "'");
         s = s.replaceAll("[!?.,]+", " ");
-        s = s.replaceAll("\s+", " ").trim();
+        s = s.replaceAll("\\s+", " ").trim();
 
         // Common Roman Urdu command aliases.
         s = s.replace("kholo na", "kholo");

@@ -1,5 +1,8 @@
 name: Build Android APK
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [ "main" ]
@@ -45,9 +48,14 @@ jobs:
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/Waheed-AI-Agent-v5.3-bundled-local-ai-debug.apk
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v7
-        with:
-          name: Waheed-AI-Agent-v5.3-bundled-local-ai-debug
-          path: app/build/outputs/apk/debug/Waheed-AI-Agent-v5.2-local-ai-debug.apk
-          if-no-files-found: error
+      - name: Publish APK as GitHub Release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v5.3"
+          FILE="app/build/outputs/apk/debug/Waheed-AI-Agent-v5.3-bundled-local-ai-debug.apk"
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" "$FILE" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Waheed AI Agent v5.3" --notes "Bundled offline Qwen3 local AI + llama.cpp. No API key and no manual GGUF selection required."
+          else
+            gh release upload "$TAG" "$FILE" --repo "$GITHUB_REPOSITORY" --clobber
+          fi

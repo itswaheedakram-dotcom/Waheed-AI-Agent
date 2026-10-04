@@ -7,7 +7,7 @@ import java.io.InputStream;
 
 public class LocalModelManager {
     private final Activity activity;
-    private static final String ASSET_MODEL = "Qwen3-0.6B-Q4_K_M.gguf";
+    private static final String ASSET_MODEL = "Qwen3-0.6B-Q3_K_M.gguf";
 
     public LocalModelManager(Activity activity) {
         this.activity = activity;

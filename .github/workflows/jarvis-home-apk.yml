@@ -1,0 +1,28 @@
+name: Build JARVIS Home APK
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'jarvis_home/**'
+      - '.github/workflows/jarvis-home-apk.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Create Flutter Android scaffold
+        run: |
+          flutter create --platforms=android --project-name jarvis_home /tmp/jarvis_build
+          cp jarvis_home/pubspec.yaml /tmp/jarvis_build/pubspec.yaml
+          cp jarvis_home/lib/main.dart /tmp/jarvis_build/lib/main.dart
+          cd /tmp/jarvis_build
+          flutter pub get
+          flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JARVIS-Home-Android-APK
+          path: /tmp/jarvis_build/build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
